@@ -8,10 +8,13 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
+import static org.mockserver.model.OpenAPIDefinition.openAPI;
 
 /**
  * Example: mocking the order-service microservice.
@@ -70,6 +73,37 @@ class OrderServiceMockTest {
 
     @Test
     @Order(2)
+    void getOrderById_openApiSpec_returnsOrder() throws Exception {
+        String spec = new String(
+            Objects.requireNonNull(getClass().getResourceAsStream("/openapi/order-service.yaml"))
+                   .readAllBytes(),
+            StandardCharsets.UTF_8
+        );
+
+        mockServer
+            .when(openAPI(spec, "getOrderById"))
+            .respond(
+                response()
+                    .withStatusCode(200)
+                    .withContentType(MediaType.APPLICATION_JSON)
+                    .withBody("""
+                        {"id": 1, "userId": 42, "product": "Widget", "total": 29.99, "status": "SHIPPED"}
+                        """)
+            );
+
+        var req = HttpRequest.newBuilder()
+            .uri(URI.create(BASE + "/api/orders/1"))
+            .GET()
+            .build();
+
+        var res = http.send(req, HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, res.statusCode());
+        assertTrue(res.body().contains("SHIPPED"));
+    }
+
+    @Test
+    @Order(3)
     void createOrder_withDelay_simulatesLatency() throws Exception {
         // Simulates a slow downstream service
         mockServer
