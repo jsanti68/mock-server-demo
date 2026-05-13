@@ -51,9 +51,12 @@ MockServerConfig                    — reads MOCKSERVER_HOST / MOCKSERVER_PORT 
 OrderServiceOpenApiConditionalTest  — OpenAPI-backed tests with conditional routing;
                                       loads spec inline from classpath (see below)
 
-src/test/resources/openapi/
-  order-service.yaml                — OpenAPI 3.0 spec defining listOrders,
+src/test/resources/
+  openapi/order-service.yaml        — OpenAPI 3.0 spec defining listOrders,
                                       createOrder, getOrderById operations
+  expectations/
+    all-conditional-expectations.json — all 8 expectations as a single JSON array
+                                        ready to preload into any MockServer instance
 ```
 
 **Basic test pattern**: each test (1) registers an expectation via `mockServer.when(...).respond(...)`, (2) fires a real HTTP request with `HttpClient`, and (3) asserts on the response.
@@ -101,9 +104,41 @@ mockServer.when(openAPI(spec, "listOrders"), Times.unlimited()).respond(/* 200 *
 request().withBody(json("{\"vip\": true}", MatchType.ONLY_MATCHING_FIELDS))
 ```
 
+**Velocity response template** — same shape as Mustache (`statusCode` + `body` required) but uses `$variable` syntax. MockServer re-evaluates built-in helpers on every render:
+
+| Built-in | Output |
+|---|---|
+| `$uuid` | UUID v4 string |
+| `$rand_int_10` | random integer 0–9 |
+| `$rand_int_100` | random integer 0–99 |
+| `$now_iso_8601` | current timestamp |
+
+> **Path parameter caveat**: `$request.pathParameters` is empty when using the `openAPI()` matcher — MockServer validates the path against the spec but does not backfill extracted parameters into the template context. Use `$request.path.replaceAll("^.*/", "")` to extract the last URL segment instead.
+
+```java
+mockServer.when(openAPI(spec, "getOrderById")).respond(
+    template(HttpTemplate.TemplateType.VELOCITY,
+        """
+        {
+          'statusCode': 200,
+          'headers': { 'Content-Type': ['application/json'] },
+          'body': '{"id": $request.path.replaceAll("^.*/", ""), "userId": $rand_int_10, "correlationId": "$uuid"}'
+        }
+        """)
+);
+```
+
 ## Loading expectations via the Admin API
 
-MockServer exposes a REST API at `PUT /mockserver/expectation`. The examples below are the direct equivalents of the four patterns in `OrderServiceOpenApiConditionalTest`. All OpenAPI-based calls use `jq` to safely embed the YAML spec as a JSON string.
+MockServer exposes a REST API at `PUT /mockserver/expectation`. The file `src/test/resources/expectations/all-conditional-expectations.json` contains all 8 expectations from `OrderServiceOpenApiConditionalTest` as a prebuilt JSON array — load them all in one shot:
+
+```bash
+curl -s -X PUT http://localhost:1080/mockserver/expectation \
+  -H 'Content-Type: application/json' \
+  -d @src/test/resources/expectations/all-conditional-expectations.json
+```
+
+The sections below show how to build each expectation individually. All OpenAPI-based calls use `jq` to safely embed the YAML spec as a JSON string.
 
 ```bash
 # Load the spec once into a shell variable
@@ -221,6 +256,27 @@ jq -n --arg spec "$SPEC" '{
   -H 'Content-Type: application/json' -d @-
 ```
 
+### 5. Velocity response template
+
+The `id` field mirrors the orderId from the URL using `$request.path.replaceAll("^.*/", "")`. Other fields are randomized on every render via built-in helpers.
+
+```bash
+TEMPLATE=$(cat <<'EOF'
+{
+  'statusCode': 200,
+  'headers': { 'Content-Type': ['application/json'] },
+  'body': '{"id": $request.path.replaceAll("^.*/", ""), "userId": $rand_int_10, "product": "Widget-$rand_int_10", "total": $rand_int_100, "status": "SHIPPED", "correlationId": "$uuid"}'
+}
+EOF
+)
+
+jq -n --arg spec "$SPEC" --arg tmpl "$TEMPLATE" '{
+  "httpRequest": { "specUrlOrPayload": $spec, "operationId": "getOrderById" },
+  "httpResponseTemplate": { "templateType": "VELOCITY", "template": $tmpl }
+}' | curl -s -X PUT http://localhost:1080/mockserver/expectation \
+  -H 'Content-Type: application/json' -d @-
+```
+
 ### Admin shortcuts
 
 ```bash
@@ -236,7 +292,8 @@ curl -s -X PUT http://localhost:1080/mockserver/reset
 | Java client | REST API field |
 |---|---|
 | `openAPI(spec, "opId")` | `"httpRequest": { "specUrlOrPayload": $spec, "operationId": "opId" }` |
-| `respond(template(...))` | `"httpResponseTemplate": { "templateType": "MUSTACHE", "template": "..." }` |
+| `respond(template(MUSTACHE, ...))` | `"httpResponseTemplate": { "templateType": "MUSTACHE", "template": "..." }` |
+| `respond(template(VELOCITY, ...))` | `"httpResponseTemplate": { "templateType": "VELOCITY", "template": "..." }` |
 | `Times.once()` | `"times": { "remainingTimes": 1, "unlimited": false }` |
 | `Times.unlimited()` | `"times": { "unlimited": true }` |
 | `json(..., ONLY_MATCHING_FIELDS)` | `"body": { "type": "JSON", "json": "...", "matchType": "ONLY_MATCHING_FIELDS" }` |

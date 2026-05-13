@@ -14,6 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -241,5 +242,60 @@ class OrderServiceOpenApiConditionalTest {
 
         assertEquals(201, vip.statusCode());
         assertTrue(vip.body().contains("\"discount\": 20"));
+    }
+
+    /**
+     * Velocity template with built-in randomization functions: each request gets a freshly
+     * generated body while the openAPI() matcher ensures only spec-valid requests match.
+     *
+     * MockServer re-evaluates all $rand_* and $uuid references on every render, so two
+     * requests to the same endpoint produce structurally identical but value-distinct bodies.
+     * The UUID in correlationId is the hard guarantee that the bodies differ.
+     *
+     * Available built-ins: $uuid, $rand_int, $rand_int_10, $rand_int_100,
+     *                       $now_epoch, $now_iso_8601, $now_rfc_1123
+     */
+    @Test
+    @Order(5)
+    void getOrderById_velocityTemplate_randomizedBodyConformsToSpec() throws Exception {
+        mockServer.when(openAPI(spec, "getOrderById")).respond(
+            template(
+                HttpTemplate.TemplateType.VELOCITY,
+                """
+                {
+                  'statusCode': 200,
+                  'headers': { 'Content-Type': ['application/json'] },
+                  'body': '{"id": $request.path.replaceAll("^.*/", ""), "userId": $rand_int_10, "product": "Widget-$rand_int_10", "total": $rand_int_100, "status": "SHIPPED", "correlationId": "$uuid"}'
+                }
+                """
+            )
+        );
+
+        var res5 = http.send(
+            HttpRequest.newBuilder().uri(URI.create(BASE + "/api/orders/5")).GET().build(),
+            HttpResponse.BodyHandlers.ofString()
+        );
+        var res99 = http.send(
+            HttpRequest.newBuilder().uri(URI.create(BASE + "/api/orders/99")).GET().build(),
+            HttpResponse.BodyHandlers.ofString()
+        );
+
+        assertEquals(200, res5.statusCode());
+        assertEquals(200, res99.statusCode());
+
+        // id must echo the orderId from the URL path
+        assertTrue(res5.body().contains("\"id\": 5"),   "expected id 5, body was: "  + res5.body());
+        assertTrue(res99.body().contains("\"id\": 99"), "expected id 99, body was: " + res99.body());
+
+        // Remaining fields conform to the Order schema shape defined in the spec
+        for (var body : List.of(res5.body(), res99.body())) {
+            assertTrue(body.matches("(?s).*\"userId\":\\s*\\d+.*"),        "userId must be an integer: " + body);
+            assertTrue(body.matches("(?s).*\"product\":\\s*\"[^\"]+\".*"), "product must be a string: "  + body);
+            assertTrue(body.matches("(?s).*\"status\":\\s*\"[^\"]+\".*"),  "status must be a string: "   + body);
+            assertTrue(body.matches("(?s).*\"correlationId\":\\s*\"[0-9a-f\\-]{36}\".*"), "correlationId must be a UUID: " + body);
+        }
+
+        // UUID guarantees the two responses are distinct even when hitting the same endpoint
+        assertNotEquals(res5.body(), res99.body(), "Each render should produce a unique body");
     }
 }

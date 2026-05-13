@@ -1,0 +1,111 @@
+[
+  {
+    "priority": 10,
+    "times": {
+      "unlimited": true
+    },
+    "httpRequest": {
+      "method": "GET",
+      "path": "/api/orders/999"
+    },
+    "httpResponse": {
+      "statusCode": 404,
+      "headers": {
+        "Content-Type": [
+          "application/json"
+        ]
+      },
+      "body": "{\"error\": \"Order not found\"}"
+    }
+  },
+  {
+    "times": {
+      "remainingTimes": 1,
+      "unlimited": false
+    },
+    "httpRequest": {
+      "specUrlOrPayload": "openapi: 3.0.3\ninfo:\n  title: Order Service API\n  version: 1.0.0\npaths:\n  /api/orders:\n    get:\n      operationId: listOrders\n      summary: List orders for a user\n      parameters:\n        - name: userId\n          in: query\n          required: true\n          schema:\n            type: integer\n      responses:\n        \"200\":\n          description: List of orders\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Order\"\n    post:\n      operationId: createOrder\n      summary: Create a new order\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/NewOrder\"\n      responses:\n        \"201\":\n          description: Order created\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n  /api/orders/{orderId}:\n    get:\n      operationId: getOrderById\n      summary: Get a single order by ID\n      parameters:\n        - name: orderId\n          in: path\n          required: true\n          schema:\n            type: integer\n      responses:\n        \"200\":\n          description: Order found\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n        \"404\":\n          description: Order not found\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Error\"\ncomponents:\n  schemas:\n    Order:\n      type: object\n      properties:\n        id:\n          type: integer\n        userId:\n          type: integer\n        product:\n          type: string\n        total:\n          type: number\n        status:\n          type: string\n    NewOrder:\n      type: object\n      required: [userId, product, total]\n      properties:\n        userId:\n          type: integer\n        product:\n          type: string\n        total:\n          type: number\n    Error:\n      type: object\n      properties:\n        error:\n          type: string\n",
+      "operationId": "listOrders"
+    },
+    "httpResponse": {
+      "statusCode": 503,
+      "headers": {
+        "Content-Type": [
+          "application/json"
+        ]
+      },
+      "body": "{\"error\": \"Service temporarily unavailable\"}"
+    }
+  },
+  {
+    "times": {
+      "unlimited": true
+    },
+    "httpRequest": {
+      "specUrlOrPayload": "openapi: 3.0.3\ninfo:\n  title: Order Service API\n  version: 1.0.0\npaths:\n  /api/orders:\n    get:\n      operationId: listOrders\n      summary: List orders for a user\n      parameters:\n        - name: userId\n          in: query\n          required: true\n          schema:\n            type: integer\n      responses:\n        \"200\":\n          description: List of orders\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Order\"\n    post:\n      operationId: createOrder\n      summary: Create a new order\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/NewOrder\"\n      responses:\n        \"201\":\n          description: Order created\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n  /api/orders/{orderId}:\n    get:\n      operationId: getOrderById\n      summary: Get a single order by ID\n      parameters:\n        - name: orderId\n          in: path\n          required: true\n          schema:\n            type: integer\n      responses:\n        \"200\":\n          description: Order found\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n        \"404\":\n          description: Order not found\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Error\"\ncomponents:\n  schemas:\n    Order:\n      type: object\n      properties:\n        id:\n          type: integer\n        userId:\n          type: integer\n        product:\n          type: string\n        total:\n          type: number\n        status:\n          type: string\n    NewOrder:\n      type: object\n      required: [userId, product, total]\n      properties:\n        userId:\n          type: integer\n        product:\n          type: string\n        total:\n          type: number\n    Error:\n      type: object\n      properties:\n        error:\n          type: string\n",
+      "operationId": "listOrders"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": [
+          "application/json"
+        ]
+      },
+      "body": "[{\"id\": 1, \"userId\": 42, \"product\": \"Widget\", \"total\": 29.99}]"
+    }
+  },
+  {
+    "priority": 10,
+    "times": {
+      "unlimited": true
+    },
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/orders",
+      "body": {
+        "type": "JSON",
+        "json": "{\"vip\": true}",
+        "matchType": "ONLY_MATCHING_FIELDS"
+      }
+    },
+    "httpResponse": {
+      "statusCode": 201,
+      "headers": {
+        "Content-Type": [
+          "application/json"
+        ]
+      },
+      "body": "{\"id\": 200, \"status\": \"CREATED\", \"discount\": 20}"
+    }
+  },
+  {
+    "priority": 0,
+    "times": {
+      "unlimited": true
+    },
+    "httpRequest": {
+      "specUrlOrPayload": "openapi: 3.0.3\ninfo:\n  title: Order Service API\n  version: 1.0.0\npaths:\n  /api/orders:\n    get:\n      operationId: listOrders\n      summary: List orders for a user\n      parameters:\n        - name: userId\n          in: query\n          required: true\n          schema:\n            type: integer\n      responses:\n        \"200\":\n          description: List of orders\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Order\"\n    post:\n      operationId: createOrder\n      summary: Create a new order\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/NewOrder\"\n      responses:\n        \"201\":\n          description: Order created\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n  /api/orders/{orderId}:\n    get:\n      operationId: getOrderById\n      summary: Get a single order by ID\n      parameters:\n        - name: orderId\n          in: path\n          required: true\n          schema:\n            type: integer\n      responses:\n        \"200\":\n          description: Order found\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n        \"404\":\n          description: Order not found\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Error\"\ncomponents:\n  schemas:\n    Order:\n      type: object\n      properties:\n        id:\n          type: integer\n        userId:\n          type: integer\n        product:\n          type: string\n        total:\n          type: number\n        status:\n          type: string\n    NewOrder:\n      type: object\n      required: [userId, product, total]\n      properties:\n        userId:\n          type: integer\n        product:\n          type: string\n        total:\n          type: number\n    Error:\n      type: object\n      properties:\n        error:\n          type: string\n",
+      "operationId": "createOrder"
+    },
+    "httpResponse": {
+      "statusCode": 201,
+      "headers": {
+        "Content-Type": [
+          "application/json"
+        ]
+      },
+      "body": "{\"id\": 100, \"status\": \"CREATED\", \"discount\": 0}"
+    }
+  },
+  {
+    "httpRequest": {
+      "specUrlOrPayload": "openapi: 3.0.3\ninfo:\n  title: Order Service API\n  version: 1.0.0\npaths:\n  /api/orders:\n    get:\n      operationId: listOrders\n      summary: List orders for a user\n      parameters:\n        - name: userId\n          in: query\n          required: true\n          schema:\n            type: integer\n      responses:\n        \"200\":\n          description: List of orders\n          content:\n            application/json:\n              schema:\n                type: array\n                items:\n                  $ref: \"#/components/schemas/Order\"\n    post:\n      operationId: createOrder\n      summary: Create a new order\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              $ref: \"#/components/schemas/NewOrder\"\n      responses:\n        \"201\":\n          description: Order created\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n  /api/orders/{orderId}:\n    get:\n      operationId: getOrderById\n      summary: Get a single order by ID\n      parameters:\n        - name: orderId\n          in: path\n          required: true\n          schema:\n            type: integer\n      responses:\n        \"200\":\n          description: Order found\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Order\"\n        \"404\":\n          description: Order not found\n          content:\n            application/json:\n              schema:\n                $ref: \"#/components/schemas/Error\"\ncomponents:\n  schemas:\n    Order:\n      type: object\n      properties:\n        id:\n          type: integer\n        userId:\n          type: integer\n        product:\n          type: string\n        total:\n          type: number\n        status:\n          type: string\n    NewOrder:\n      type: object\n      required: [userId, product, total]\n      properties:\n        userId:\n          type: integer\n        product:\n          type: string\n        total:\n          type: number\n    Error:\n      type: object\n      properties:\n        error:\n          type: string\n",
+      "operationId": "getOrderById"
+    },
+    "httpResponseTemplate": {
+      "templateType": "VELOCITY",
+      "template": "{\n  'statusCode': 200,\n  'headers': { 'Content-Type': ['application/json'] },\n  'body': '{\"id\": $request.path.replaceAll(\"^.*/\", \"\"), \"userId\": $rand_int_10, \"product\": \"Widget-$rand_int_10\", \"total\": $rand_int_100, \"status\": \"SHIPPED\", \"correlationId\": \"$uuid\"}'\n}"
+    }
+  }
+]
