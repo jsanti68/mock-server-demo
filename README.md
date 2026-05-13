@@ -298,3 +298,35 @@ curl -s -X PUT http://localhost:1080/mockserver/reset
 | `Times.unlimited()` | `"times": { "unlimited": true }` |
 | `json(..., ONLY_MATCHING_FIELDS)` | `"body": { "type": "JSON", "json": "...", "matchType": "ONLY_MATCHING_FIELDS" }` |
 | `when(..., priority)` | `"priority": <integer>` |
+
+### Loading from a file at startup with Docker
+
+# docker-compose.yml
+services:
+  mockserver:
+    image: mockserver/mockserver:5.15.0
+    ports:
+      - "1080:1080"
+    volumes:
+      - ./mockserver/specs:/opt/mockserver/specs
+      - ./mockserver/expectations:/opt/mockserver/expectations
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /opt/mockserver/expectations/expectations.json
+
+ # mockserver/expectations/expectations.json
+[
+  {
+    "id": "create-payment",
+    "httpRequest": {
+      "specUrlOrPayload": "file:/opt/mockserver/specs/payment-api.yaml",
+      "operationId": "createPayment"
+    },
+    "httpResponse": {
+      "statusCode": 201,
+      "headers": { "Content-Type": ["application/json"] },
+      "body": "{ \"id\": \"pay_123\", \"status\": \"approved\" }"
+    }
+  }
+]     
+
+This way MockServer boots with your OpenAPI expectations already active — no curl calls needed in your pipeline, and your Java microservices can start hitting it immediately.
