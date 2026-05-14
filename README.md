@@ -301,7 +301,7 @@ curl -s -X PUT http://localhost:1080/mockserver/reset
 
 ### Loading from a file at startup with Docker
 If you want expectations pre-loaded before MockServer accepts any traffic — useful in CI — mount a JSON file and use the -initializationJsonPath flag:
-```
+```yml
 # docker-compose.yml
 services:
   mockserver:
@@ -315,7 +315,7 @@ services:
       MOCKSERVER_INITIALIZATION_JSON_PATH: /opt/mockserver/expectations/expectations.json
 
 ```
-```
+```json
  # mockserver/expectations/expectations.json
 [
   {
@@ -331,5 +331,15 @@ services:
     }
   }
 ]
-````   
+```
+```bash
+# bash
+docker run --rm \
+  -p 1080:1080 \
+  -v $(pwd)/mockserver/specs:/opt/mockserver/specs \
+  -v $(pwd)/mockserver/expectations:/opt/mockserver/expectations \
+  mockserver/mockserver:5.15.0 \
+  -serverPort 1080 \
+  -initializationJsonPath /opt/mockserver/expectations/expectations.json
+```   
 This way MockServer boots with your OpenAPI expectations already active — no curl calls needed in your pipeline, and your Java microservices can start hitting it immediately.
